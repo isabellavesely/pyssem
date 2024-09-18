@@ -3,8 +3,8 @@ from sympy import Matrix
 from tqdm import tqdm    
 import numpy as np
 from astropy import units as u
-from poliastro.bodies import Earth
-from poliastro.twobody import Orbit
+# from poliastro.bodies import Earth
+# from poliastro.twobody import Orbit
 import copy
 import concurrent.futures
 from ..pmd.pmd import *
@@ -483,72 +483,72 @@ class Species:
         return species
 
 
-    def set_elliptical_orbits(self, n_shells: int, R0_km: np.ndarray, HMid: float, mu: float, parellel_processing: bool):
-        """
-        Set up elliptical orbits for species and calculate the time spent in each shell.
-        """
-        for species_group in self.species.values():
-            processed_species = set()  # Set to track species that have already been processed
+    # def set_elliptical_orbits(self, n_shells: int, R0_km: np.ndarray, HMid: float, mu: float, parellel_processing: bool):
+        # """
+        # Set up elliptical orbits for species and calculate the time spent in each shell.
+        # """
+        # for species_group in self.species.values():
+        #     processed_species = set()  # Set to track species that have already been processed
 
-            for species in list(species_group):  # Create a list to avoid modifying the group during iteration
-                if species.elliptical and species.sym_name not in processed_species:
-                    species.semi_major_axis_bins = HMid
+        #     for species in list(species_group):  # Create a list to avoid modifying the group during iteration
+        #         if species.elliptical and species.sym_name not in processed_species:
+        #             species.semi_major_axis_bins = HMid
 
-                    # Process each eccentricity bin
-                    for i, ecc in enumerate(species.eccentricity_bins):
-                        # Create a new species based on the original
-                        new_species = species.copy()
-                        new_species.eccentricity = ecc
-                        new_species.sym_name = f"{species.sym_name}_e{ecc}"
-                        new_species.time_per_shells = []
-                        new_species.velocity_per_shells = []
+        #             # Process each eccentricity bin
+        #             for i, ecc in enumerate(species.eccentricity_bins):
+        #                 # Create a new species based on the original
+        #                 new_species = species.copy()
+        #                 new_species.eccentricity = ecc
+        #                 new_species.sym_name = f"{species.sym_name}_e{ecc}"
+        #                 new_species.time_per_shells = []
+        #                 new_species.velocity_per_shells = []
 
-                        # Calculate the lower and upper bounds for the eccentricity bin
-                        if i == 0:
-                            new_species.ecc_lb = 0 
-                        else:
-                            new_species.ecc_lb = 0.5 * (species.eccentricity_bins[i - 1] + ecc)
+        #                 # Calculate the lower and upper bounds for the eccentricity bin
+        #                 if i == 0:
+        #                     new_species.ecc_lb = 0 
+        #                 else:
+        #                     new_species.ecc_lb = 0.5 * (species.eccentricity_bins[i - 1] + ecc)
 
-                        if i == len(species.eccentricity_bins) - 1:
-                            new_species.ecc_ub = 1  
-                        else:
-                            new_species.ecc_ub = 0.5 * (ecc + species.eccentricity_bins[i + 1])
+        #                 if i == len(species.eccentricity_bins) - 1:
+        #                     new_species.ecc_ub = 1  
+        #                 else:
+        #                     new_species.ecc_ub = 0.5 * (ecc + species.eccentricity_bins[i + 1])
 
-                        # Add the new species to the group
-                        species_group.append(new_species)
+        #                 # Add the new species to the group
+        #                 species_group.append(new_species)
 
-                    # Mark the original species as processed and remove it
-                    processed_species.add(species.sym_name)
-                    species_group.remove(species)
+        #             # Mark the original species as processed and remove it
+        #             processed_species.add(species.sym_name)
+        #             species_group.remove(species)
 
-        if parellel_processing:
-                # Prepare arguments for parallel processing
-                args_list = [
-                    (species, mu, R0_km, HMid, self.propagate_orbit, self.calculate_time_and_velocity_in_shell)
-                    for species_group in self.species.values()
-                    for species in species_group
-                    if species.elliptical
-                ]
+        # if parellel_processing:
+        #         # Prepare arguments for parallel processing
+        #         args_list = [
+        #             (species, mu, R0_km, HMid, self.propagate_orbit, self.calculate_time_and_velocity_in_shell)
+        #             for species_group in self.species.values()
+        #             for species in species_group
+        #             if species.elliptical
+        #         ]
 
-                # Use ProcessPoolExecutor for parallel execution
-                with concurrent.futures.ProcessPoolExecutor() as executor:
-                    results = list(tqdm(
-                        executor.map(self.process_elliptical_species, args_list),
-                        total=len(args_list),
-                        desc="Propagating elliptical orbits to find time and velocity in shells"
-                    ))
+        #         # Use ProcessPoolExecutor for parallel execution
+        #         with concurrent.futures.ProcessPoolExecutor() as executor:
+        #             results = list(tqdm(
+        #                 executor.map(self.process_elliptical_species, args_list),
+        #                 total=len(args_list),
+        #                 desc="Propagating elliptical orbits to find time and velocity in shells"
+        #             ))
 
-        else:
-            # Sequential processing
-            for species_group in self.species.values():
-                for species in species_group:
-                    if species.elliptical:  # hasn't been created yet
-                        # Set semi-major axis for this species
-                        species.semi_major_axis_bins = HMid
+        # else:
+        #     # Sequential processing
+        #     for species_group in self.species.values():
+        #         for species in species_group:
+        #             if species.elliptical:  # hasn't been created yet
+        #                 # Set semi-major axis for this species
+        #                 species.semi_major_axis_bins = HMid
 
-                        # Calculate time spent in each shell for the semi-major axis
-                        for a in tqdm(species.semi_major_axis_bins, desc=f"Calculating time in shells for {species.sym_name}"):
-                            true_anomalies, radii, velocities = self.propagate_orbit(a, species.eccentricity, mu)
-                            time_in_shell, velocity_in_shell = self.calculate_time_and_velocity_in_shell(radii, velocities, R0_km)
-                            species.time_per_shells.append(time_in_shell)
-                            species.velocity_per_shells.append(velocity_in_shell)
+        #                 # Calculate time spent in each shell for the semi-major axis
+        #                 for a in tqdm(species.semi_major_axis_bins, desc=f"Calculating time in shells for {species.sym_name}"):
+        #                     true_anomalies, radii, velocities = self.propagate_orbit(a, species.eccentricity, mu)
+        #                     time_in_shell, velocity_in_shell = self.calculate_time_and_velocity_in_shell(radii, velocities, R0_km)
+        #                     species.time_per_shells.append(time_in_shell)
+        #                     species.velocity_per_shells.append(velocity_in_shell)
