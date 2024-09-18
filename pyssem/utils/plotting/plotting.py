@@ -101,7 +101,7 @@ def create_plots(self):
                         interpolation='nearest')
         fig.colorbar(cax, ax=ax, label='Number of Objects')
         ax.set_xlabel('Time')
-        ax.set_ylabel('Orbital Shell')
+        ax.set_ylabel('Altitude (km)')
         ax.set_title(species_name)
         ax.set_xticks(np.linspace(output["t"][0], output["t"][-1], num=5))
         ax.set_yticks(np.arange(0, num_shells, max(1, num_shells // 5)))

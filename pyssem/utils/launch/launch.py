@@ -159,10 +159,10 @@ def ADEPT_traffic_model(scen_properties, file_path):
     # Load the traffic model data
     T = pd.read_csv(file_path)
     
-    # T['epoch_start_datime'] = T['epoch_start'].apply(lambda x: julian_to_datetime(x))
+    T['epoch_start_datime'] = T['epoch_start'].apply(lambda x: julian_to_datetime(x))
 
-    # if 'obj_class' not in T.columns:
-    #     T = define_object_class(T)  # Make sure this function is defined and imported
+    if 'obj_class' not in T.columns:
+        T = define_object_class(T)  # Make sure this function is defined and imported
 
     # # Calculate Apogee, Perigee, and Altitude
     # convert sma ecc apogee and perigee to numerical
@@ -208,8 +208,8 @@ def ADEPT_traffic_model(scen_properties, file_path):
     T_new = T_new[T_new['species_class'].isin(scen_properties.species_cells.keys())]
 
     # Initial population
-    T_new['epoch_start_datetime'] = pd.to_datetime(T_new['epoch_start_datetime'])
-    x0 = T_new[T_new['epoch_start_datetime'] < scen_properties.start_date]
+    T_new['epoch_start_datime'] = pd.to_datetime(T_new['epoch_start_datime'])
+    x0 = T_new[T_new['epoch_start_datime'] < scen_properties.start_date]
 
     # x0.to_csv(os.path.join('pyssem', 'utils', 'launch', 'data', 'x0.csv'))
 
@@ -237,7 +237,7 @@ def ADEPT_traffic_model(scen_properties, file_path):
                   for i in range(scen_properties.steps + 1)]    
 
     for i, (start, end) in tqdm(enumerate(zip(time_steps[:-1], time_steps[1:])), total=len(time_steps)-1, desc="Processing Time Steps"):
-        flm_step = T_new[(T_new['epoch_start_datetime'] >= start) & (T_new['epoch_start_datetime'] < end)]
+        flm_step = T_new[(T_new['epoch_start_datime'] >= start) & (T_new['epoch_start_datime'] < end)]
         flm_summary = flm_step.groupby(['alt_bin', 'species']).size().unstack(fill_value=0)
 
         # All objects aren't always in shells, so you need to these back in. 
