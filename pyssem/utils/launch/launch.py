@@ -167,19 +167,24 @@ def ADEPT_traffic_model(scen_properties, file_path):
     # # Calculate Apogee, Perigee, and Altitude
     # convert sma ecc apogee and perigee to numerical
     
-
     T['apogee'] = T['sma'] * (1 + T['ecc'])
     T['perigee'] = T['sma'] * (1 - T['ecc'])
     T['alt'] = (T['apogee'] + T['perigee']) / 2 - scen_properties.re
 
     # # Map species type based on object class
     species_dict = {
+        # "Non-station-keeping Satellite": "Sns",
+        # "Rocket Body": "B",
+        # "Station-keeping Satellite": "Su",
+        # "Coordinated Satellite": "S",
+        # "Debris": "N",
+        # "Candidate Satellite": "C"
+        "Trackable Debris": "N",
+        "LNT" : "N",
+        "CRC Station-keeping Satellite": "S",
+        "Non-CRC Station-keeping Satellite": "S",
         "Non-station-keeping Satellite": "Sns",
         "Rocket Body": "B",
-        "Station-keeping Satellite": "Su",
-        "Coordinated Satellite": "S",
-        "Debris": "N",
-        "Candidate Satellite": "C"
     }
 
     T['species_class'] = T['obj_class'].map(species_dict)
@@ -439,28 +444,69 @@ def find_alt_bin(altitude, scen_properties):
             return len(shell_altitudes) 
     
 
-def define_object_class(T):
+# def define_object_class(T):
+#     """
+#     Define the object class of each object in the traffic model.
+#     Adds them to a new column named "obj_type" or overwrites the existing column.
+
+#     :param T: list of launches
+#     :type T: pandas.DataFrame
+#     """
+
+#     T['obj_class'] = "Unknown"
+
+#     # Classify Rocket Bodies
+#     T.loc[T['obj_type'] == 1, 'obj_class'] = "Rocket Body"
+
+#     # Classify Satellites
+#     T.loc[(T['obj_type'] == 2) & (T['stationkeeping'] != 0) & (T['stationkeeping'] < 5), 'obj_class'] = "Station-keeping Satellite"
+#     T.loc[(T['obj_type'] == 2) & (T['stationkeeping'] == 0), 'obj_class'] = "Non-station-keeping Satellite"
+#     T.loc[(T['obj_type'] == 2) & (T['stationkeeping'] == 5), 'obj_class'] = "Coordinated Satellite"
+#     T.loc[(T['obj_type'] == 2) & (T['stationkeeping'] == 6), 'obj_class'] = "Candidate Satellite"
+
+#     # Classify Debris
+#     T.loc[T['obj_type'].isin([3, 4]), 'obj_class'] = "Debris"
+
+#     # Count unclassified rows
+#     unclassed_rows = (T['obj_class'] == "Unknown").sum()
+#     if unclassed_rows > 0:
+#         print(f'\t{unclassed_rows} Unclassified rows remain.')
+
+#     return T
+
+def define_object_class(T, trackability_threshold=None):
     """
     Define the object class of each object in the traffic model.
-    Adds them to a new column named "obj_type" or overwrites the existing column.
+    Adds them to a new column named "obj_class" or overwrites the existing column.
 
     :param T: list of launches
     :type T: pandas.DataFrame
+    :param trackability_threshold: Optional threshold for trackability of debris based on size
+    :type trackability_threshold: float or None
     """
 
+    # Initialize the 'obj_class' column
     T['obj_class'] = "Unknown"
+
+    # Ensure 'adept_id' is treated as a string and zero-padded to 18 characters
+    T['adept_id'] = T['adept_id'].astype(str)
+    T['adept_id'] = T['adept_id'].str.zfill(18)
+
+    # Convert 'size' column to numeric values, coerce errors to NaN
+    T['size'] = pd.to_numeric(T['size'], errors='coerce')
 
     # Classify Rocket Bodies
     T.loc[T['obj_type'] == 1, 'obj_class'] = "Rocket Body"
 
-    # Classify Satellites
-    T.loc[(T['obj_type'] == 2) & (T['stationkeeping'] != 0) & (T['stationkeeping'] < 5), 'obj_class'] = "Station-keeping Satellite"
-    T.loc[(T['obj_type'] == 2) & (T['stationkeeping'] == 0), 'obj_class'] = "Non-station-keeping Satellite"
-    T.loc[(T['obj_type'] == 2) & (T['stationkeeping'] == 5), 'obj_class'] = "Coordinated Satellite"
-    T.loc[(T['obj_type'] == 2) & (T['stationkeeping'] == 6), 'obj_class'] = "Candidate Satellite"
+    # Classify Satellites (Station-keeping and Non-station-keeping)
+    T.loc[((T['obj_type'] == 2) & (T['adept_id'].str[6] == "0")) & (T['adept_id'].str[5] == "0"), 'obj_class'] = "Station-keeping Satellite"
+    T.loc[((T['obj_type'] == 2) & (T['adept_id'].str[6] == "0")) & (T['adept_id'].str[5] == "1"), 'obj_class'] = "Station-keeping Satellite"
+    T.loc[((T['obj_type'] == 2) & (T['adept_id'].str[6] == "0")) & (T['adept_id'].str[5].isin(["2", "3", "4"])), 'obj_class'] = "Station-keeping Satellite"
+    T.loc[(T['obj_type'] == 2) & (T['adept_id'].str[6] == "1"), 'obj_class'] = "Debris"
+    T.loc[(T['obj_class'] == "Station-keeping Satellite") & (T['mass'] < 10), "obj_class"] = "Non-station-keeping Satellite"
 
-    # Classify Debris
-    T.loc[T['obj_type'].isin([3, 4]), 'obj_class'] = "Debris"
+
+    T.loc[(T['obj_type'] == 3) | (T['obj_type'] == 4), 'obj_class'] = "Debris"
 
     # Count unclassified rows
     unclassed_rows = (T['obj_class'] == "Unknown").sum()
