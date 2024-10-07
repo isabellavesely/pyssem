@@ -131,8 +131,8 @@ def run_optimizer(scenario_properties, optimized_species):
       var_name = var + '_0'  # For naming purposes
       # Dynamically calculate the number of variables for each species based on N_shell
       var_initial_guess = np.ones(len(scenario_properties.all_symbolic_vars[i * N_shell:(i + 1) * N_shell])) * 0  # Initial guess for each species
-    #   lb_initial = np.ones(len(scenario_properties.all_symbolic_vars[i * N_shell:(i + 1) * N_shell])) * 1  # Lower bound for each species
-      lb_initial = np.ones(len(scenario_properties.all_symbolic_vars[i * N_shell:(i + 1) * N_shell])) * 0.005
+      lb_initial = np.ones(len(scenario_properties.all_symbolic_vars[i * N_shell:(i + 1) * N_shell])) * 1  # Lower bound for each species
+    #   lb_initial = np.ones(len(scenario_properties.all_symbolic_vars[i * N_shell:(i + 1) * N_shell])) * 0.005
 
       species_list.append(var_initial_guess)
       lb_species_list.append(lb_initial)
@@ -151,8 +151,8 @@ def run_optimizer(scenario_properties, optimized_species):
   x0 = np.concatenate([x0_species, lam_0])
 
   # Handle the lambda variables' lower bounds similarly
-#   lb_lam = np.ones(len(scenario_properties.all_symbolic_vars[start_lambda_idx:])) * 1
-  lb_lam = np.ones(len(scenario_properties.all_symbolic_vars[start_lambda_idx:])) * 0.005
+  lb_lam = np.ones(len(scenario_properties.all_symbolic_vars[start_lambda_idx:])) * 1
+#   lb_lam = np.ones(len(scenario_properties.all_symbolic_vars[start_lambda_idx:])) * 0.005
 
   # Concatenate species lower bounds with lambda lower bounds to form the final lb array
   lb = np.concatenate([lb_species, lb_lam])
@@ -160,7 +160,7 @@ def run_optimizer(scenario_properties, optimized_species):
 
   ## Farilure rate, % = fail_rate / 100
   # make this user define. This is a %. 
-  failure_rate_U = 100 # 0.15, 0.5
+  failure_rate_U = 0.5 # 0.15, 0.5
   failure_rate_U = failure_rate_U/100
 
   ## Objective function
@@ -248,7 +248,7 @@ def run_optimizer(scenario_properties, optimized_species):
       return np.array(fun3(x, np.array(lam_opt))).flatten()
 
   # Time span for the solution
-  tf_ss = 10
+  tf_ss = 1000
   tspan1 = np.linspace(0, tf_ss, 100)
 
   # Solve the ODE using solve_ivp
@@ -291,7 +291,7 @@ def run_optimizer(scenario_properties, optimized_species):
 
   # Create a colormap to generate colors dynamically based on the number of species
   num_species = len(scenario_properties.species_names)
-  colormap = cm.get_cmap('tab10', num_species)  # Using 'tab10' color map, adjust for more species
+  colormap = cm.get_cmap('tab20', num_species)  # Using 'tab10' color map, adjust for more species
 
   # 1. Plot the total population and individual species
   plt.figure(facecolor='w')
@@ -329,24 +329,29 @@ def run_optimizer(scenario_properties, optimized_species):
   plt.grid(True)
 
   # Plot total population variation
-  plt.plot(t_prop, N_tot_sum[-1] - N_tot_sum, color='black', linewidth=sel_LineWidth)
+#   plt.plot(t_prop, N_tot_sum[-1] - N_tot_sum, color='black', linewidth=sel_LineWidth)
+  plt.semilogy(t_prop, abs(N_tot_sum[-1] - N_tot_sum), color='black', linewidth=sel_LineWidth)
 
   # Dynamically plot species population variation with dynamically generated colors
   for i, species_name in enumerate(scenario_properties.species_names):
       species_variation = species_prop_list[i].sum(axis=0)  # Summing over the shells dimension
-      plt.plot(t_prop, species_variation[-1] - species_variation, color=colormap(i), linewidth=sel_LineWidth)
+    #   plt.plot(t_prop, species_variation[-1] - species_variation, color=colormap(i), linewidth=sel_LineWidth)
+      plt.semilogy(t_prop, abs(species_variation[-1] - species_variation), color=colormap(i), linewidth=sel_LineWidth)
 
   # Update labels, title, and legend dynamically
   # plt.title("Population variation")
   plt.xlabel("Years", fontsize=sel_FontSize)
   plt.ylabel("Count", fontsize=sel_FontSize)
   legend_labels = ["Total"] + scenario_properties.species_names  # Add species names dynamically
-  plt.legend(legend_labels, loc="best")
+#   plt.legend(legend_labels, loc="best")
+  plt.legend(legend_labels,bbox_to_anchor = (1, 1)) 
   plt.gca().tick_params(axis='both', which='major', labelsize=sel_FontSize)
   plt.gca().spines['bottom'].set_linewidth(sel_LineWidthAxis)
   plt.gca().spines['left'].set_linewidth(sel_LineWidthAxis)
-  plt.savefig("figures/optimizer/so_variation.png", bbox_inches='tight', dpi=300)
-  plt.savefig("figures/optimizer/so_variation.pdf", bbox_inches='tight', dpi=300)
+#   plt.savefig("figures/optimizer/so_variation.png", bbox_inches='tight', dpi=300)
+#   plt.savefig("figures/optimizer/so_variation.pdf", bbox_inches='tight', dpi=300)
+  plt.savefig("figures/optimizer/so_variation_log.png", bbox_inches='tight', dpi=300)
+  plt.savefig("figures/optimizer/so_variation_log.pdf", bbox_inches='tight', dpi=300)
 
 
   # 3. Plot failure rate constraint
