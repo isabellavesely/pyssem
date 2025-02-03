@@ -8,7 +8,8 @@
 # if testing locally, use the following import statements
 from utils.simulation.scen_properties import ScenarioProperties
 from utils.simulation.species import Species
-from utils.collisions.collisions import create_collision_pairs
+from utils.collisions.collisions_elliptical import create_collision_pairs_elliptical 
+from utils.collisions.collisions_elliptical import create_collision_pairs
 from utils.plotting.plotting import Plots, results_to_json
 from datetime import datetime
 import json
@@ -133,7 +134,7 @@ class Model:
             species_list.add_species_from_json(species_json)
 
             # Set up elliptical orbits for species
-            # species_list.set_elliptical_orbits(self.scenario_properties.n_shells, self.scenario_properties.R0_km, self.scenario_properties.HMid, self.scenario_properties.mu, self.scenario_properties.parallel_processing)
+            species_list.set_elliptical_orbits(self.scenario_properties.n_shells, self.scenario_properties.R0_km, self.scenario_properties.HMid, self.scenario_properties.mu, self.scenario_properties.parallel_processing)
             
             # Pass functions for drag and PMD
             species_list.convert_params_to_functions()
@@ -148,7 +149,10 @@ class Model:
             self.scenario_properties.add_species_set(species_list.species, self.all_symbolic_vars)
 
             # Create Collision Pairs
-            self.scenario_properties.add_collision_pairs(create_collision_pairs(self.scenario_properties))
+            if not any(species.elliptical for species_group in self.species.values() for species in species_group):
+                self.scenario_properties.add_collision_pairs(create_collision_pairs_elliptical(self.scenario_properties))
+            else:
+                self.scenario_properties.add_collision_pairs(create_collision_pairs(self.scenario_properties))
 
             # Create Indicator Variables if provided
             if self.scenario_properties.indicator_variables is not None:

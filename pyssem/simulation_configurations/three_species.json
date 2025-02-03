@@ -17,7 +17,7 @@
         "steps": 50,
         "v_imp": 10, 
         "baseline": false,
-        "fragment_spreading": false, 
+        "fragment_spreading": true, 
         "parallel_processing": false,
         "indicator_variables": ["active_loss_per_shell"]
     },
