@@ -17,9 +17,9 @@
         "steps": 50,
         "v_imp": 10, 
         "baseline": false,
-        "fragment_spreading": true, 
+        "fragment_spreading": false, 
         "parallel_processing": false,
-        "indicator_variables": ["active_loss_per_shell"]
+        "indicator_variables": ["all_indicators"]
     },
     "simulation_name": "Indigo",
     "species": [

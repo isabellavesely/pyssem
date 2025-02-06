@@ -8,8 +8,9 @@
 # if testing locally, use the following import statements
 from utils.simulation.scen_properties import ScenarioProperties
 from utils.simulation.species import Species
-from utils.collisions.collisions_elliptical import create_collision_pairs_elliptical 
-from utils.collisions.collisions_elliptical import create_collision_pairs
+# from utils.collisions.collisions import create_collision_pairs
+from utils.collisions.collisions_elliptical import create_collision_pairs_elliptical
+from utils.collisions.collisions_new import create_collision_pairs
 from utils.plotting.plotting import Plots, results_to_json
 from datetime import datetime
 import json
@@ -134,7 +135,7 @@ class Model:
             species_list.add_species_from_json(species_json)
 
             # Set up elliptical orbits for species
-            species_list.set_elliptical_orbits(self.scenario_properties.n_shells, self.scenario_properties.R0_km, self.scenario_properties.HMid, self.scenario_properties.mu, self.scenario_properties.parallel_processing)
+            # species_list.set_elliptical_orbits(self.scenario_properties.n_shells, self.scenario_properties.R0_km, self.scenario_properties.HMid, self.scenario_properties.mu, self.scenario_properties.parallel_processing)
             
             # Pass functions for drag and PMD
             species_list.convert_params_to_functions()
@@ -148,8 +149,8 @@ class Model:
             # Add the final species to the scenario properties to be used in the simulation
             self.scenario_properties.add_species_set(species_list.species, self.all_symbolic_vars)
 
-            # Create Collision Pairs
-            if not any(species.elliptical for species_group in self.species.values() for species in species_group):
+            # Create Collision Pairs, elliptical orbits use a slightly different process (as ecc is also binned). 
+            if any(species.elliptical for species_group in self.scenario_properties.species.values() for species in species_group):
                 self.scenario_properties.add_collision_pairs(create_collision_pairs_elliptical(self.scenario_properties))
             else:
                 self.scenario_properties.add_collision_pairs(create_collision_pairs(self.scenario_properties))
@@ -213,7 +214,7 @@ class Model:
 
 if __name__ == "__main__":
 
-    with open(os.path.join('pyssem', 'simulation_configurations', 'three_species.json')) as f:
+    with open(os.path.join('pyssem', 'simulation_configurations', 'just_debris.json')) as f:
         simulation_data = json.load(f)
 
     scenario_props = simulation_data["scenario_properties"]

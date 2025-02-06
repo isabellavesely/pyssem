@@ -58,6 +58,18 @@ def func_Am(d, ObjClass):
 
     return out
 
+# def func_dv(Am, mode):
+    
+#     if mode == 'col':
+#        mu = 0.2 * np.log10(Am) + 1.85 # Explosion
+#     elif mode == 'exp':
+#         mu = 0.9 * np.log10(Am) + 2.9
+
+#     sigma = 0.4
+#     N = mu + sigma * np.random.randn(*np.shape(mu))
+#     z = 10 ** N # m/s
+#     return z 
+
 def func_dv(Am, mode):
     """
     Calculate the change in velocity (delta-v) for debris fragments based on their area-to-mass ratio.
@@ -73,14 +85,16 @@ def func_dv(Am, mode):
         np.ndarray: Calculated delta-v values for each fragment.
     """
     if mode == 'col':
-       mu = 0.2 * np.log10(Am) + 1.85 # Explosion
+        mu = 0.9 * np.log10(Am) + 2.9  # Collision
     elif mode == 'exp':
-        mu = 0.9 * np.log10(Am) + 2.9
-
+        mu = 0.2 * np.log10(Am) + 1.85  # Explosion
+    else:
+        raise ValueError("Invalid mode; use 'col' or 'exp'")
+    
     sigma = 0.4
     N = mu + sigma * np.random.randn(*np.shape(mu))
-    z = 10 ** N # m/s
-    return z 
+    z = 10 ** N  # m/s (use element-wise exponentiation)
+    return z
 
 def calculate_amsms_for_rocket_body(logd):
     """
@@ -198,6 +212,7 @@ def evolve_bins(m1, m2, r1, r2, dv1, dv2, binC, binE, binW, LBdiam, RBflag = 0, 
     :return: _description_
     :rtype: _type_
     """
+
     # Super sampling ratio
     SS = 20
     MU = 398600.4418  # km^3/s^2
@@ -320,6 +335,16 @@ def evolve_bins(m1, m2, r1, r2, dv1, dv2, binC, binE, binW, LBdiam, RBflag = 0, 
             print(SS * 3)  # Ensure that the denominator is not zero
 
     return nums, isCatastrophic, binOut, altNums
+
+
+def evolve_bins_nasa_sbm():
+    """
+        This is for a new version of fragment spreading, where the total number of fragments is calculated
+        from a new version of NASA SBM. 
+
+    """
+    
+    pass
 
 def process_species_pair(args):
     
