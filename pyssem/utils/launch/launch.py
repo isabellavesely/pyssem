@@ -307,7 +307,7 @@ def ADEPT_traffic_model(scen_properties, file_path):
     # }
 
     species_dict = {
-        "Non-station-keeping Satellite": "Sns",
+        "Non-station-keeping Satellite": "S",
         "Station-keeping Satellite": "S",
         "Rocket Body": "B",
         "CRC Station-keeping Satellite": "S",

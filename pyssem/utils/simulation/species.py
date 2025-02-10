@@ -372,16 +372,6 @@ class Species:
 
             for deb_spec in debris_species:
                 if spec_mass == deb_spec.mass:
-                    if active_spec.elliptical:
-                        # find the closest eccentricity bin to current eccentricity
-                        ecc_bins = deb_spec.eccentricity_bins
-                        ecc_diffs = [abs(ecc - active_spec.eccentricity) for ecc in ecc_bins]
-                        closest_ecc_idx = ecc_diffs.index(min(ecc_diffs))
-
-                        # if the current debris eccentricity is not the same, continue the loop
-                        if deb_spec.eccentricity != ecc_bins[closest_ecc_idx]:
-                            continue
-
                     deb_spec.pmd_func = pmd_func_derelict
                     deb_spec.pmd_linked_species = []                
                     deb_spec.pmd_linked_species.append(active_spec)

@@ -13,7 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import pickle
 
 
-def frag_col_SBM_vec_lc2(ep, p1_in, p2_in, param, LB, orbit_type='LEO'):
+def frag_col_SBM_vec_lc2(ep, p1_in, p2_in, param, LB, minimum_altitude = 0, orbit_type='LEO'):
     """
     Collision model following NASA EVOLVE 4.0 standard breakup model (2001)
     with the revision in ODQN "Proper Implementation of the 1998 NASA Breakup Model" (2011)
@@ -509,10 +509,9 @@ def frag_col_SBM_vec_lc2(ep, p1_in, p2_in, param, LB, orbit_type='LEO'):
     # Return debris objects and the collision type flag.
 
     if orbit_type == 'LEO':
-        # Then remove all of the fragments that are in LEO
-        debris1 = debris1[debris1[:, 0] < 8371, :]
-        debris2 = debris2[debris2[:, 0] < 8371, :]
-
+        # Then remove all of the fragments that are in LEO and larger than minimum_altitude
+        debris1 = debris1[(debris1[:, 0] < 8371) & (debris1[:, 0] > minimum_altitude), :]
+        debris2 = debris2[(debris2[:, 0] < 8371) & (debris2[:, 0] > minimum_altitude), :]
     # Also check that no debris has a eccentricity greater than 1
     if debris1.size > 0:
         debris1 = debris1[debris1[:, 1] < 1, :]

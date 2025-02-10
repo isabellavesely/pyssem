@@ -3,7 +3,6 @@ from utils.collisions.NASA_SBM_frags import frag_col_SBM_vec_lc2
 from utils.collisions.NASA_SBN6 import *
 import numpy as np
 from tqdm import tqdm
-from utils.collisions.cartesian_to_kep import cart_2_kep, kep_2_cart
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from sympy import symbols, Matrix, pi, S, Expr, zeros
 import matplotlib.pyplot as plt
@@ -258,7 +257,7 @@ def generate_collision_equations(all_elliptical_collision_species, scen_properti
             phi_s = collision_pair.phi[s_source]
 
             # Process fragments from the collision
-            fragments = elliptical_pair.fragments  # Should be an array of shape [n_destination_shells, n_mass_bins, n_ecc_bins]
+            fragments = elliptical_pair.fragments  # Should be an array of shape [n_destination_shells, n_mass_bins]
 
             if fragments is not None:
                 n_destination_shells, n_mass_bins, n_ecc_bins = fragments.shape

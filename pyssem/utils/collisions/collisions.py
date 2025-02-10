@@ -3,7 +3,7 @@ from sympy import symbols, Matrix
 import numpy as np
 from ..simulation.species_pair_class import SpeciesPairClass
 from tqdm import tqdm
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import multiprocessing as mp
 
@@ -13,8 +13,8 @@ def func_Am(d, ObjClass):
     Calculates the area-to-mass ratio for spacecraft fragments based on NASA's new breakup model of evolve 4.0.
     
     Parameters:
-    d : ndarray or float
-        Array of diameters in meters or a single diameter.
+    d : ndarray
+        Array of diameters in meters.
     ObjClass : int or float
         Object class indicating whether the object is a rocket body or not.
     
@@ -22,53 +22,25 @@ def func_Am(d, ObjClass):
     out : ndarray
         Area-to-mass ratio for each fragment.
     """
-    # Ensure d is a NumPy array
-    try:
-        numObj = d.size
-    except AttributeError:
-        numObj = 1
-        d = np.array([d])
-    logds = np.log10(d)
     numObj = d.size
-
     logds = np.log10(d)
     amsms = np.nan * np.ones((numObj, 5))  # alpha, mu1, sigma1, mu2, sigma2
 
-    try:
-        if 4.5 < ObjClass < 8.5:  # Rocket-body related
-            if isinstance(logds, (int, float)):  # Check if logds is a single value
-                logds = [logds]  # Convert single value to list
-            for ind, logd in enumerate(logds):
-                alpha, mu1, sigma1, mu2, sigma2 = calculate_amsms_for_rocket_body(logd)
-                amsms[ind, :] = [alpha, mu1, sigma1, mu2, sigma2]
-        else:  # Not rocket body
-            if isinstance(logds, (int, float)):  # Check if logds is a single value
-                logds = [logds]  # Convert single value to list
-            for ind, logd in enumerate(logds):
-                alpha, mu1, sigma1, mu2, sigma2 = calculate_amsms_not_rocket_body(logd)
-                amsms[ind, :] = [alpha, mu1, sigma1, mu2, sigma2]
-    except Exception as e:
-        print(f"Error in calculating amsms: {e}")
+    if 4.5 < ObjClass < 8.5:  # Rocket-body related
+        for ind, logd in enumerate(logds):
+            alpha, mu1, sigma1, mu2, sigma2 = calculate_amsms_for_rocket_body(logd)
+            amsms[ind, :] = [alpha, mu1, sigma1, mu2, sigma2]
+    else:  # Not rocket body
+        for ind, logd in enumerate(logds):
+            alpha, mu1, sigma1, mu2, sigma2 = calculate_amsms_not_rocket_body(logd)
+            amsms[ind, :] = [alpha, mu1, sigma1, mu2, sigma2]
 
-        
     N1 = amsms[:, 1] + amsms[:, 2] * np.random.randn(numObj)
     N2 = amsms[:, 3] + amsms[:, 4] * np.random.randn(numObj)
 
     out = 10 ** (amsms[:, 0] * N1 + (1 - amsms[:, 0]) * N2)
 
     return out
-
-# def func_dv(Am, mode):
-    
-#     if mode == 'col':
-#        mu = 0.2 * np.log10(Am) + 1.85 # Explosion
-#     elif mode == 'exp':
-#         mu = 0.9 * np.log10(Am) + 2.9
-
-#     sigma = 0.4
-#     N = mu + sigma * np.random.randn(*np.shape(mu))
-#     z = 10 ** N # m/s
-#     return z 
 
 def func_dv(Am, mode):
     """
@@ -85,16 +57,14 @@ def func_dv(Am, mode):
         np.ndarray: Calculated delta-v values for each fragment.
     """
     if mode == 'col':
-        mu = 0.9 * np.log10(Am) + 2.9  # Collision
+       mu = 0.2 * np.log10(Am) + 1.85 # Explosion
     elif mode == 'exp':
-        mu = 0.2 * np.log10(Am) + 1.85  # Explosion
-    else:
-        raise ValueError("Invalid mode; use 'col' or 'exp'")
-    
+        mu = 0.9 * np.log10(Am) + 2.9
+
     sigma = 0.4
     N = mu + sigma * np.random.randn(*np.shape(mu))
-    z = 10 ** N  # m/s (use element-wise exponentiation)
-    return z
+    z = 10 ** N # m/s
+    return z 
 
 def calculate_amsms_for_rocket_body(logd):
     """
@@ -178,7 +148,7 @@ def calculate_amsms_not_rocket_body(logd):
 
     return alpha, mu1, sigma1, mu2, sigma2
 
-def evolve_bins(m1, m2, r1, r2, dv1, dv2, binC, binE, binW, LBdiam, RBflag = 0, fragment_spreading=False, n_shells=0, R02 = None): # eventually add stochastic ability
+def evolve_bins(m1, m2, r1, r2, dv1, dv2, binC, binE, binW, LBdiam, source_sinks, RBflag = 0, fragment_spreading=False, n_shells=0, R02 = None): # eventually add stochastic ability
     """
     Function to evolve the mass bins of a debris cloud after a collision. The function is based on the NASA Standard Breakup
     Model. The function returns the number of fragments in each bin, whether the collision was catastrophic or not, and the
@@ -212,7 +182,6 @@ def evolve_bins(m1, m2, r1, r2, dv1, dv2, binC, binE, binW, LBdiam, RBflag = 0, 
     :return: _description_
     :rtype: _type_
     """
-
     # Super sampling ratio
     SS = 20
     MU = 398600.4418  # km^3/s^2
@@ -301,7 +270,7 @@ def evolve_bins(m1, m2, r1, r2, dv1, dv2, binC, binE, binW, LBdiam, RBflag = 0, 
     # Binning via histcounts
     nums, _ = np.histogram(m, bins=binEd)
     nums = nums / SS # Correct for super sampling
-    
+
     # Define binOut based on the option chosen for bin setup
     binOut = []
     if binC is not None and binE is None and binW is None:  # Option 1: bin center given; output = edges
@@ -335,16 +304,6 @@ def evolve_bins(m1, m2, r1, r2, dv1, dv2, binC, binE, binW, LBdiam, RBflag = 0, 
             print(SS * 3)  # Ensure that the denominator is not zero
 
     return nums, isCatastrophic, binOut, altNums
-
-
-def evolve_bins_nasa_sbm():
-    """
-        This is for a new version of fragment spreading, where the total number of fragments is calculated
-        from a new version of NASA SBM. 
-
-    """
-    
-    pass
 
 def process_species_pair(args):
     
@@ -401,8 +360,23 @@ def process_species_pair(args):
         if scen_properties.fragment_spreading:
             try:
                 results = evolve_bins(m1, m2, r1, r2, dv1, dv2, [], binE, [], LBgiven, RBflag, source_sinks, scen_properties.fragment_spreading, scen_properties.n_shells, scen_properties.R0_km)
-                frags_made[dv_index, :] = results[0]
-                alt_nums = results[3]
+
+                if s1.elliptical or s2.elliptical:
+                    if s1.elliptical and s2.elliptical:
+                        # Both are elliptical, take the product of the time_per_shells values
+                        time_factor = s1.time_per_shells[dv_index][dv_index] * s2.time_per_shells[dv_index][dv_index]
+                    elif s1.elliptical:
+                        time_factor = s1.time_per_shells[dv_index][dv_index]
+                    else:
+                        # Only s2 is elliptical, use its time_per_shells value
+                        time_factor = s2.time_per_shells[dv_index][dv_index]
+                    
+                    frags_made[dv_index, :] = results[0] * time_factor
+                    alt_nums = results[3] * time_factor
+
+                else:
+                    frags_made[dv_index, :] = results[0]
+                    alt_nums = results[3]
             except IndexError as ie:
                 alt_nums  = None
                 continue
@@ -410,8 +384,21 @@ def process_species_pair(args):
                 continue
         else:
             results = evolve_bins(m1, m2, r1, r2, dv1, dv2, [], binE, [], LBgiven, RBflag, source_sinks)
-            frags_made[dv_index, :] = results[0]
-            
+            # Check if s1 or s2 is elliptical
+            if s1.elliptical or s2.elliptical:
+                if s1.elliptical and s2.elliptical:
+                    # Both are elliptical, take the product of the time_per_shells values
+                    time_factor = s1.time_per_shells[dv_index][dv_index] * s2.time_per_shells[dv_index][dv_index]
+                elif s1.elliptical:
+                    time_factor = s1.time_per_shells[dv_index][dv_index]
+                else:
+                    # Only s2 is elliptical, use its time_per_shells value
+                    time_factor = s2.time_per_shells[dv_index][dv_index]
+                
+                frags_made[dv_index, :] = results[0] * time_factor
+            else:
+                frags_made[dv_index, :] = results[0]
+
     for i, species in enumerate(debris_species):
         frags_made_sym = Matrix(frags_made[:, i]) 
 
@@ -430,7 +417,7 @@ def process_species_pair(args):
     if scen_properties.fragment_spreading:
         return SpeciesPairClass(s1, s2, gammas, source_sinks, scen_properties, alt_nums)
     else:
-        return SpeciesPairClass(s1, s2, gammas, source_sinks, scen_properties, frags_made)
+        return SpeciesPairClass(s1, s2, gammas, source_sinks, scen_properties)
         
 
 def create_collision_pairs(scen_properties):
@@ -457,8 +444,8 @@ def create_collision_pairs(scen_properties):
     species_pairs_classes = [] 
     # n_f = symbols('n_f:{0}'.format(scen_properties.n_shells))
 
-
-    # Get the debris species
+    # Debris species - remember, we don't want PMD linked species. Just raw debris.
+    # debris_species = [species for species in scen_properties.species['debris'] if not species.pmd_linked_species]
     debris_species = [species for species in scen_properties.species['debris']]
 
     # Calculate the Mass bin centres, edges and widths
@@ -490,8 +477,6 @@ def create_collision_pairs(scen_properties):
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
     # Testing evolve_bins
     m1 = 1000
     m2 = 250
@@ -501,7 +486,7 @@ if __name__ == "__main__":
     binE = np.array([1.4137200e-03, 2.8420686e-01, 1.3028350e+02, 3.6650000e+02,
        6.1150000e+02, 1.0000000e+05])
     R02 = np.arange(200, 2050, 50)
-    nums, is_catastrophic, bin_out, alt_nums = evolve_bins(m1, m2, r1, r2, dv,  dv, [], binE, [], 0.1, RBflag=0, fragment_spreading=True, n_shells=10, R02=R02)
+    nums, is_catastrophic, bin_out, alt_nums = evolve_bins(m1, m2, r1, r2, dv, [], binE, [], 0.1, RBflag=0, fragment_spreading=True, n_shells=10, R02=R02)
 
     range_values = range(-(len(alt_nums)//2), len(alt_nums)//2)
 
